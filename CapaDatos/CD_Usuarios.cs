@@ -19,6 +19,7 @@ namespace CapaDatos
                 using (SqlConnection oconexion = new SqlConnection(Conexion.cn))
                 {
                     string query = "Select IdUsuario, Nombres, Apellidos, Correo, Clave, Reestablecer, Activo from USUARIO";
+
                     SqlCommand cmd = new SqlCommand(query, oconexion);
                     cmd.CommandType = CommandType.Text;
 
@@ -31,7 +32,7 @@ namespace CapaDatos
                             lista.Add(new Usuario()
                             {
                                 IdUsuario = (int)dr["IdUsuario"],
-                                Nombre = (string)dr["Nombres"],
+                                Nombres = (string)dr["Nombres"],
                                 Apellidos = (string)dr["Apellidos"],
                                 Correo = (string)dr["Correo"],
                                 Clave = (string)dr["Clave"],

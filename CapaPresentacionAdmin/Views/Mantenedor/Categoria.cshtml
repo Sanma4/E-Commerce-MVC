@@ -4,5 +4,268 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Categoria</h2>
+<h2 class="mt-3">Categoria</h2>
+
+<ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item"><a href="index.html">Mantenimiento</a></li>
+    <li class="breadcrumb-item active">Categorias</li>
+</ol>
+
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-users"></i> Lista Categorias
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col">
+
+                <button class="btn btn-success" onclick="abrirModal(null)">Crear nueva</button>
+            </div>
+        </div>
+
+        <hr />
+        <table id="tabla" class="display cell-border" style="width: 100%">
+            <thead>
+                <tr>
+                    <th>Descripción</th>
+                    <th>Activo</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody class="">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="FormModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="exampleModalLabel">Categoria</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input id="txtId" type="hidden" value="0" />
+                <div class="row g-2">
+
+                    <div class="col-sm-6">
+                        <label for="txtDescripcion" class="form-label">Descripción</label>
+                        <input type="text" class="form-control" id="txtDescripcion" placeholder="Descripción" autocomplete="off">
+                    </div>
+
+                    <div class="col-sm-6">
+                        <label for="ddlActivo" class="form-label">Activo</label>
+                        <select class="form-control" id="ddlActivo" aria-label="Default select example">
+                            <option value="1">Si</option>
+                            <option value="0">No</option>
+                        </select>
+                    </div>
+
+                </div>
+                <div class="row mt-3">
+                    <div class="=col-12">
+                        <div id="mensajeError" class="alert alert-danger" role="alert">
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" onclick="Guardar()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        var tabladata;
+        var filaSeleccionada;
+
+        //Llamar a la lista
+        jQuery.ajax({
+            url: '@Url.Action("ListarCategoria", "Mantenedor")',
+            type: "GET",
+            datatype: "json",
+            contentType: "application/json; charset=utf-8",
+            success: function(data) {
+
+                console.log(data)
+            }
+        })
+
+        //Crear tabla
+        tabladata = $("#tabla").DataTable({
+            responsive: true,
+            ordering: false,
+            "ajax": {
+                url: '@Url.Action("ListarCategoria", "Mantenedor")',
+                type: "GET",
+                datatype: "json"
+            },
+            //Cargar los campos
+            "columns": [
+                { "data": "Descripcion" },
+                {//Diseño del campo activo
+                    "data": "Activo", "render": function (valor) {
+                        if (valor) {
+                            return '<span class="badge bg-success">Si</span>'
+                        }
+                        else {
+                            return '<span class="badge bg-danger">No</span>'
+                        }
+
+                    }
+                },
+                {
+                    //Agregar botones de editar y eliminar
+                    "defaultContent": '<button type="button" class="btn btn-primary btn-sm btn-editar"> <i class="fas fa-pen"> </i> </button>' +
+                        '<button type="button" class="btn btn-danger btn-eliminar btn-sm ms-2"> <i class="fas fa-trash"> </i> </button>',
+                    "orderable": false,
+                    "searcheable": false,
+                    "width": "90px"
+                }
+
+            ],
+            "language":{
+                "url": "https://cdn.datatables.net/plug-ins/2.1.7/i18n/es-ES.json"
+            }
+
+        });
+
+        function abrirModal(json) {
+
+
+            $("#txtId").val(0);
+            $("#txtDescripcion").val("");
+            $("#ddlActivo").val(1);
+
+            $("#mensajeError").hide();
+
+            if (json != null) { //Cargar los campos cuando se edita
+
+                $("#txtId").val(json.IdCategoria)
+                $("#txtDescripcion").val(json.Descripcion)
+                $("#ddlActivo").val(json.Activo == true ? 1 : 0)
+            }
+
+            $("#FormModal").modal("show")
+        }
+
+        //Boton editar
+        $("#tabla tbody").on("click", ".btn-editar", function() {
+            filaSeleccionada = $(this).closest("tr")
+            var data = tabladata.row(filaSeleccionada).data();
+            abrirModal(data)
+        })
+
+        //Boton eliminar
+        $("#tabla tbody").on("click", ".btn-eliminar", function () {
+
+            var CategoriaSeleccionada = $(this).closest("tr")
+            var data = tabladata.row(CategoriaSeleccionada).data();
+            swal({
+                title: "¿Quieres eliminar esta categoría?",
+                text: "No podras recuperarla",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonClass: "btn-danger",
+                confirmButtonText: "Eliminar",
+                cancelButtonText: "Cancelar",
+                closeOnConfirm: false
+            },
+                function () {
+                    jQuery.ajax({
+                        url: '@Url.Action("EliminarCategoria", "Mantenedor")',
+                        type: "POST",
+                        data: JSON.stringify({ id: data.IdCategoria }),
+                        dataType: "json",
+                        contentType: "application/json; charset=utf-8",
+                        success: function (data) {
+                            if (!data.resultado) {
+                                tabladata.row(CategoriaSeleccionada).remove().draw();
+                                swal("Eliminada!", "La categoría ha sido eliminada", "success");
+                            }
+                            else {
+                                swal("No se pudo eliminar la categoría", data.mensaje, "error")
+                            }
+
+                        },
+                        error: function (error) {
+                            console.log(error)
+                        },
+                    })
+                });
+        });
+
+
+        function Guardar() {
+
+            var categoria = {
+
+                IdCategoria: $("#txtId").val(),
+                Descripcion: $("#txtDescripcion").val(),
+                Activo: $("#ddlActivo").val() == 1 ? true : false
+            }
+
+            jQuery.ajax({
+                url: '@Url.Action("GuardarCategoria", "Mantenedor")',
+                type: "POST",
+                data: JSON.stringify({ objeto: categoria }),
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function (data) {
+
+                    $(".modal-body").LoadingOverlay("hide");
+
+                    if (categoria.IdCategoria == 0) {
+                        //Crear categoria
+                        if (data.resultado != 0) {
+                            categoria.IdCategoria = data.resultado
+                            tabladata.row.add(categoria).draw(false);
+                            $("#FormModal").modal("hide")
+                        } else {
+
+                            $("#mensajeError").text(data.mensaje);
+                            $("#mensajeError").show();
+                        }
+                    } else {
+                        //Editar usuario
+                        if (data.resultado) {
+
+                            tabladata.row(filaSeleccionada).data(categoria).draw(false);
+                            filaSeleccionada = null;
+                            $("#FormModal").modal("hide")
+                        } else {
+
+                            $("#mensajeError").text(data.mensaje);
+                            $("#mensajeError").show();
+                        }
+                    }
+                },
+                error: function (error) {
+                    $(".modal-body").LoadingOverlay("hide");
+                    $("#mensajeError").text("Error Ajax");
+                    $("#mensajeError").show();
+                },
+                beforeSend: function () {
+                    $(".modal-body").LoadingOverlay("show", {
+                        imageResizeFactor: 2,
+                        text: "Creando...",
+                        size: 14
+                    });
+                }
+
+            })
+
+
+
+        }
+    </script>
+}
 

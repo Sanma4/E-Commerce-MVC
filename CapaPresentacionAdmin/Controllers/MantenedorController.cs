@@ -1,7 +1,11 @@
 ﻿using CapaEntidad;
 using CapaNegocio;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
@@ -105,6 +109,104 @@ namespace CapaPresentacionAdmin.Controllers
             return Json(new { respuesta = respuesta, mensaje = mensaje }, JsonRequestBehavior.AllowGet);
 
         }
+
+
         #endregion
+
+        #region PRODUCTO
+        //+++++++++++++++Producto++++++++++++++++
+
+        [HttpGet]
+        public JsonResult ListarProducto()
+        {
+            List<Producto> oLista = new List<Producto>();
+
+            oLista = new CN_Producto().Listar();
+
+            return Json(new { data = oLista }, JsonRequestBehavior.AllowGet);
+        }
+
+
+        [HttpPost]
+        public JsonResult GuardarProducto(string objeto, HttpPostedFileBase archivoImg)
+        {
+            string mensaje = string.Empty;
+            bool operacionExitosa = true;
+            bool guardarImg = true;
+            decimal precio;
+
+            Producto oProducto = new Producto();
+
+            oProducto = JsonConvert.DeserializeObject<Producto>(objeto);
+
+            if (decimal.TryParse(oProducto.PrecioTexto, NumberStyles.AllowDecimalPoint, new CultureInfo("es-ES"), out precio))
+                oProducto.Precio = precio;
+            else
+                return Json(new { operacionExitosa = false, mensaje = "El formato del precio debe ser 00.00" }, JsonRequestBehavior.AllowGet);
+
+            if (oProducto.IdProducto == 0)
+            {
+                int idGenerado = new CN_Producto().Registrar(oProducto, out mensaje);
+                if(idGenerado != 0)
+                {
+                    oProducto.IdProducto = idGenerado;
+                }
+                else
+                {
+                    operacionExitosa = false;
+                }
+            }
+            else
+                operacionExitosa = new CN_Producto().Editar(oProducto, out mensaje);
+
+            if (operacionExitosa)
+            {
+                if(archivoImg != null)
+                {
+                    string rutaGuardar = ConfigurationManager.AppSettings["ServidorFotos"];
+                    string extension = Path.GetExtension(archivoImg.FileName);
+                    string nombreImg = string.Concat(oProducto.IdProducto.ToString(), extension);
+
+                    try
+                    {
+                        archivoImg.SaveAs(Path.Combine(rutaGuardar, nombreImg));
+                    }
+                    catch (Exception ex)
+                    {
+                        string msg = ex.Message;
+                        guardarImg = false;
+                        throw ex;
+                    }
+
+                    if (guardarImg)
+                    {
+                        oProducto.UrlImagen = rutaGuardar;
+                        oProducto.NombreImagen = nombreImg;
+                        bool rspta = new CN_Producto().GuardarDatosImg(oProducto, out mensaje);
+                    }
+                    else
+                    {
+                        mensaje = "Ha habido un error con la imagen pero se guardo su producto";
+                    }
+                }
+            }
+
+
+            return Json(new { operacionExitosa = operacionExitosa, idGenerado = oProducto.IdProducto, mensaje = mensaje }, JsonRequestBehavior.AllowGet);
+        }
+
+        public JsonResult EliminarProducto(int id)
+        {
+            bool respuesta = false;
+            string mensaje = string.Empty;
+
+            respuesta = new CN_Producto().Eliminar(id, out mensaje);
+
+            return Json(new { respuesta = respuesta, mensaje = mensaje }, JsonRequestBehavior.AllowGet);
+
+        }
+        #endregion
+
+
     }
 }

@@ -28,9 +28,9 @@ namespace CapaPresentacionAdmin.Controllers
             return View();
         }
 
+        //+++++++++++++++CATEGORIA++++++++++++++++
         #region CATEGORIA
 
-        //+++++++++++++++CATEGORIA++++++++++++++++
 
         [HttpGet]
         public JsonResult ListarCategoria()
@@ -70,8 +70,8 @@ namespace CapaPresentacionAdmin.Controllers
 
         #endregion
 
-        #region MARCA
         //+++++++++++++++MARCA++++++++++++++++
+        #region MARCA
 
         [HttpGet]
         public JsonResult ListarMarca()
@@ -113,8 +113,8 @@ namespace CapaPresentacionAdmin.Controllers
 
         #endregion
 
+        //+++++++++++++++PRODUCTO++++++++++++++++
         #region PRODUCTO
-        //+++++++++++++++Producto++++++++++++++++
 
         [HttpGet]
         public JsonResult ListarProducto()
@@ -205,6 +205,29 @@ namespace CapaPresentacionAdmin.Controllers
             return Json(new { respuesta = respuesta, mensaje = mensaje }, JsonRequestBehavior.AllowGet);
 
         }
+
+        [HttpPost]
+        public JsonResult imagenProducto(int id)
+        {
+            bool conversion;
+            Producto oproducto = new CN_Producto().Listar().Where(p => p.IdProducto == id).FirstOrDefault();
+
+            string textoBase64 = CN_Recursos.ConvetirBase64(Path.Combine(oproducto.UrlImagen, oproducto.NombreImagen), out conversion);
+
+            return Json(new
+            {
+
+                conversion = conversion,
+                textoBase64 = textoBase64,
+                extesion = Path.GetExtension(oproducto.NombreImagen)
+
+            },
+            JsonRequestBehavior.AllowGet
+            );
+        }
+
+
+
         #endregion
 
 

@@ -92,6 +92,7 @@ namespace CapaDatos
             {
                 idAutoGenerado = 0;
                 Mensaje = ex.Message;
+                throw ex;
             }
             return idAutoGenerado;
         }
@@ -130,6 +131,7 @@ namespace CapaDatos
             {
                 resultado = false;
                 Mensaje = ex.Message;
+                throw ex;
 
             }
             return resultado;
@@ -143,14 +145,14 @@ namespace CapaDatos
             {
                 using (SqlConnection oconexion = new SqlConnection(Conexion.cn))
                 {
-                    string query = "update producto set UrlImagen = @UrlImg, NombreImagen = @NomImg where IdProducto = @IdProducto";
+                    string query = "update Producto set UrlImagen = @UrlImg, NombreImagen = @NomImg where IdProducto = @IdProducto";
                     SqlCommand cmd = new SqlCommand(query, oconexion);
                     cmd.Parameters.AddWithValue("@UrlImg", oproducto.UrlImagen);
                     cmd.Parameters.AddWithValue("@NomImg", oproducto.NombreImagen);
                     cmd.Parameters.AddWithValue("@IdProducto", oproducto.IdProducto);
                     cmd.Parameters.Add("Resultado", SqlDbType.Int).Direction = ParameterDirection.Output;
                     cmd.Parameters.Add("Mensaje", SqlDbType.VarChar, 500).Direction = ParameterDirection.Output;
-                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandType = CommandType.Text;
 
                     oconexion.Open();
 
@@ -161,13 +163,13 @@ namespace CapaDatos
 
 
 
-                    oconexion.Close();
                 }
             }
             catch (Exception ex)
             {
                 resultado = false;
                 Mensaje = ex.Message;
+                throw ex;
             }
             return resultado;
         }
@@ -199,6 +201,7 @@ namespace CapaDatos
             {
                 resultado = false;
                 Mensaje = ex.Message;
+                throw ex;
             }
             return resultado;
         }

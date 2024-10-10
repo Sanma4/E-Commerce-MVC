@@ -4,7 +4,7 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Producto</h2>
+<h2 class="mt-3">Producto</h2>
 
 <ol class="breadcrumb mb-4">
     <li class="breadcrumb-item"><a href="index.html">Mantenimiento</a></li>
@@ -61,7 +61,7 @@
                             <img id="imgProducto" height="197" width="200" class="border rounded mx-auto d-block img-fluid" />
                         </div>
                         <div class="mb-2">
-                            <input type="file" class="form-control" id="fileProducto" accept="image/png, image/jpg, image/jpeg" onchange="" />
+                            <input type="file" class="form-control" id="fileProducto" accept="image/png, image/jpg, image/jpeg" onchange="mostarImg(this)" />
                         </div>
                     </div>
 
@@ -130,6 +130,18 @@
         var tabladata;
         var filaSeleccionada;
 
+
+        function mostarImg(input) {
+
+            if (input.files) {
+                var reader = new FileReader();
+
+                reader.onload = function (e) {
+                    $("#imgProducto").attr("src", e.target.result).width(200).height(197)
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
         //Llamar a la lista
         jQuery.ajax({
             url: '@Url.Action("ListarMarca", "Mantenedor")',
@@ -181,11 +193,61 @@
 
         });
 
+        jQuery.ajax({
+            url: '@Url.Action("ListarMarca", "Mantenedor")',
+            type: "GET",
+            data: null,
+            datatype: "json",
+            contentType: "application/json; charset=utf-8",
+            success: function (data) {
+
+                $("<option>").attr({ "value": "0", "disabled" : "true" }).text("Seleccionar").appendTo("#ddlMarca")
+
+                $.each(data.data, function (index, valor) {
+
+                    $("<option>").attr({ "value": valor.IdMarca }).text(valor.Descripcion).appendTo("#ddlMarca")
+                })
+            },
+            error: function (error) {
+
+                console.log(error)
+            }
+        })
+
+        jQuery.ajax({
+            url: '@Url.Action("ListarCategoria", "Mantenedor")',
+            type: "GET",
+            data: null,
+            datatype: "json",
+            contentType: "application/json; charset=utf-8",
+            success: function (data) {
+
+                $("<option>").attr({ "value": "0", "disabled" : "true" }).text("Seleccionar").appendTo("#ddlCategoria")
+
+                $.each(data.data, function (index, valor) {
+
+                    $("<option>").attr({ "value": valor.IdCategoria }).text(valor.Descripcion).appendTo("#ddlCategoria")
+                })
+            },
+            error: function (error) {
+
+                console.log(error)
+            }
+        })
+
+
         function abrirModal(json) {
 
 
             $("#txtId").val(0);
+            $("#imgProducto").removeAttr("src");
+            $("#fileProducto").val("");
+            $("#txtNombre").val("");
             $("#txtDescripcion").val("");
+            $("#ddlMarca").val(0);
+            $("#ddlCategoria").val(0);
+            $("#txtStock").val("");
+            $("#txtPrecio").val("");
             $("#ddlActivo").val(1);
 
             $("#mensajeError").hide();
@@ -193,7 +255,14 @@
             if (json != null) { //Cargar los campos cuando se edita
 
                 $("#txtId").val(json.IdMarca)
+                //$("#imgProducto").val(json.urlImg)
+                //$("#fileProducto").val(json.NombreImagen)
+                $("#txtNombre").val(json.Nombre)
                 $("#txtDescripcion").val(json.Descripcion)
+                $("#ddlMarca").val(json.oMarca.IdMarca);
+                $("#ddlCategoria").val(json.oCategoria.IdCategoria);
+                $("#txtPrecio").val(json.Precio)
+                $("#txtStock").val(json.Stock)
                 $("#ddlActivo").val(json.Activo == true ? 1 : 0)
             }
 
@@ -249,28 +318,45 @@
 
         function Guardar() {
 
-            var Marca = {
+            var imagenSeleccionada = $("#fileProducto")[0].files[0];
+            var Producto = {
 
-                IdMarca: $("#txtId").val(),
+                IdProducto: $("#txtId").val(),
+                Nombre: $("#txtNombre").val(),
                 Descripcion: $("#txtDescripcion").val(),
+                oMarca: {
+                    IdMarca: $("#ddlMarca option:selected").val(),
+                    Descripcion: $("#ddlMarca option:selected").text()
+                },
+                oCategoria :{
+                    IdCategoria: $("#ddlCategoria option:selected").val(),
+                    Descripcion: $("#ddlCategoria option:selected").text()
+                },
+                PrecioTexto: $("#txtPrecio").val(),
+                Precio: $("#txtPrecio").val(),
+                Stock: $("#txtStock").val(),
                 Activo: $("#ddlActivo").val() == 1 ? true : false
             }
 
+            var request = new FormData();
+            request.append("objeto", JSON.stringify(Producto))
+            request.append("archivoImg", imagenSeleccionada)
+
             jQuery.ajax({
-                url: '@Url.Action("GuardarMarca", "Mantenedor")',
+                url: '@Url.Action("GuardarProducto", "Mantenedor")',
                 type: "POST",
-                data: JSON.stringify({ objeto: Marca }),
-                dataType: "json",
-                contentType: "application/json; charset=utf-8",
+                data: request,
+                processData: false,
+                contentType: false,
                 success: function (data) {
 
                     $(".modal-body").LoadingOverlay("hide");
 
-                    if (Marca.IdMarca == 0) {
-                        //Crear Marca
-                        if (data.resultado != 0) {
-                            Marca.IdMarca = data.resultado
-                            tabladata.row.add(Marca).draw(false);
+                    if (Producto.IdProducto == 0) {
+                        //Crear Producto
+                        if (data.idGenerado != 0) {
+                            Producto.IdProducto = data.idGenerado
+                            tabladata.row.add(Producto).draw(false);
                             $("#FormModal").modal("hide")
                         } else {
 
@@ -278,10 +364,10 @@
                             $("#mensajeError").show();
                         }
                     } else {
-                        //Editar Marca
-                        if (data.resultado) {
+                        //Editar Producto
+                        if (data.operacionExitosa) {
 
-                            tabladata.row(filaSeleccionada).data(Marca).draw(false);
+                            tabladata.row(filaSeleccionada).data(Producto).draw(false);
                             filaSeleccionada = null;
                             $("#FormModal").modal("hide")
                         } else {
